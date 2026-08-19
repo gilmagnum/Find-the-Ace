@@ -1,11 +1,3 @@
-# Adjusting z-index for confetti to be on top of everything.
-# The previous code had a z-index of 300 for zoom-container, and I need to make sure
-# the confetti (which is created by the library) or the z-index is handled correctly.
-# Actually, the library `canvas-confetti` renders on a canvas. I can set the style of the canvas if I have access,
-# or simply increase the z-index of the container that holds the confetti.
-# Wait, canvas-confetti creates its own canvas element. I can specify the z-index in the config.
-
-html_content_final_fixed = """
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -99,7 +91,6 @@ html_content_final_fixed = """
             document.getElementById('zoom-card').innerText = text;
             container.style.display = 'flex';
             
-            // Set confetti z-index to be higher than zoom-container (which is 300)
             setTimeout(() => {
                 confetti({ 
                     particleCount: 150, 
@@ -126,7 +117,3 @@ html_content_final_fixed = """
     </script>
 </body>
 </html>
-"""
-
-with open('index.html', 'w', encoding='utf-8') as f:
-    f.write(html_content_final_fixed)
