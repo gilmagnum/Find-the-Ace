@@ -7,24 +7,28 @@
     <style>
         body { font-family: sans-serif; background-color: #1a1a1a; text-align: center; margin: 0; padding: 5px; color: white; overflow: hidden; touch-action: manipulation; }
         #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #board { position: relative; width: 95vw; height: 65vh; margin: 5px auto; background-color: #2e7d32; border: 5px solid #5d4037; border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
-        .card { position: absolute; width: 45px; height: 65px; background-color: #34495e; color: transparent; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: all 0.4s; border: 1px solid #7f8c8d; user-select: none; }
+        #board { position: relative; width: 95vw; height: 62vh; margin: 5px auto; background-color: #2e7d32; border: 5px solid #5d4037; border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
+        .card { position: absolute; width: 45px; height: 65px; background-color: #34495e; color: transparent; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: all 0.6s ease-in-out; border: 1px solid #7f8c8d; user-select: none; }
         .card.flipped { background-color: #fff; color: #000; transform: rotateY(0deg) !important; z-index: 50; }
         .card.red { color: #d32f2f !important; }
         .card.ace { background-color: #ffeb3b; border: 3px solid #f44336; z-index: 100; }
         .stats { font-size: 0.9em; margin: 5px 0; font-weight: bold; }
         
+        /* סלוטים לאסים בתחתית המסך */
+        #ace-slots { display: flex; justify-content: center; gap: 10px; margin-top: 5px; height: 75px; }
+        .slot { width: 45px; height: 65px; border: 2px dashed rgba(255, 255, 255, 0.4); border-radius: 4px; background: rgba(0, 0, 0, 0.2); }
+
         #message-banner { display: none; position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.9); color: #ffeb3b; padding: 10px 20px; border-radius: 30px; font-size: 1.2em; font-weight: bold; z-index: 400; border: 2px solid gold; pointer-events: none; }
         .fade-anim { animation: fadeInOut 2s ease; }
         @keyframes fadeInOut { 0% { opacity: 0; transform: translate(-50%, -20px); } 20% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -20px); } }
 
         #zoom-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 300; align-items: center; justify-content: center; }
         #zoom-card { width: 150px; height: 210px; background: white; color: black; font-size: 4em; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 5px solid gold; }
-        .controls { display: flex; justify-content: center; flex-wrap: wrap; }
+        .controls { display: flex; justify-content: center; flex-wrap: wrap; margin-top: 5px; }
         button { padding: 10px 15px; font-size: 0.9em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 3px; font-weight: bold; }
     </style>
 </head>
-<body onclick="handleScreenClick(event)">
+<body>
     <div id="message-banner"></div>
 
     <div id="menu">
@@ -34,8 +38,17 @@
     </div>
     <div class="stats" id="stats">קלפים: 52 | אסים: 0/4</div>
     <div id="board"></div>
+    
+    <!-- סלוטים ייעודיים לאסים בתחתית המסך -->
+    <div id="ace-slots">
+        <div class="slot" id="slot-0"></div>
+        <div class="slot" id="slot-1"></div>
+        <div class="slot" id="slot-2"></div>
+        <div class="slot" id="slot-3"></div>
+    </div>
+
     <div class="controls">
-        <button onclick="resetGame()">איפוס</button>
+        <button onclick="resetGame()">ערבב מחדש</button>
     </div>
 
     <div id="zoom-container" onclick="closeZoom()">
@@ -130,13 +143,27 @@
         }
 
         function startGame(withTimer) {
-            event.stopPropagation();
             playSound('click');
             useTimer = withTimer;
             document.getElementById('menu').style.display = 'none';
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
+            startRound();
+        }
+
+        function startRound() {
+            clearInterval(timer);
+            clearInterval(confettiInterval);
+            isGameOver = false;
+            acesFound = 0;
+            cardsLeft = 52;
+            timeLeft = 30;
+            globalZIndex = 1;
+
+            document.getElementById('message-banner').style.display = 'none';
+            document.getElementById('zoom-container').style.display = 'none';
+
             if (useTimer) {
                 timer = setInterval(() => {
                     timeLeft--;
@@ -149,20 +176,13 @@
         }
 
         function resetGame() {
-            if (event) event.stopPropagation();
             playSound('click');
-            location.reload();
-        }
-
-        function handleScreenClick(e) {
-            // אם המשחק הסתיים והמשתמש לחץ על הרקע (ולא על כפתור), נאפס את המשחק
-            if (isGameOver && e.target.tagName !== 'BUTTON') {
-                resetGame();
-            }
+            startRound();
         }
 
         function initBoard() {
             const board = document.getElementById('board');
+            board.innerHTML = '';
             let deck = [];
             for(let s of ['♠', '♥', '♦', '♣']) for(let v of ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']) deck.push({s, v});
             deck.sort(() => Math.random() - 0.5);
@@ -186,6 +206,7 @@
                     flipCard(div, card);
                 };
             });
+            updateStats();
         }
 
         function flipCard(el, card) {
@@ -199,9 +220,16 @@
 
             if (card.v === 'A') {
                 el.classList.add('ace');
+                const currentAceIndex = acesFound;
                 acesFound++;
                 showZoom(card.v + card.s);
+
+                // העברת האס לסלוט המיועד בתחתית המסך לאחר 1.5 שניות
+                setTimeout(() => {
+                    moveAceToSlot(el, currentAceIndex);
+                }, 1500);
             } else {
+                // העלמת קלף שאינו אס לאחר 1.5 שניות
                 setTimeout(() => {
                     el.style.transition = 'opacity 0.5s, transform 0.5s';
                     el.style.opacity = '0';
@@ -210,6 +238,22 @@
                 }, 1500);
             }
             updateStats();
+        }
+
+        function moveAceToSlot(el, slotIndex) {
+            const slot = document.getElementById(`slot-${slotIndex}`);
+            if (!slot) return;
+            
+            const slotRect = slot.getBoundingClientRect();
+            const boardRect = document.getElementById('board').getBoundingClientRect();
+
+            // חישוב מיקום יחסי ביחס ללוח המשחק
+            const targetLeft = slotRect.left - boardRect.left;
+            const targetTop = slotRect.top - boardRect.top;
+
+            el.style.left = targetLeft + 'px';
+            el.style.top = targetTop + 'px';
+            el.style.transform = 'rotate(0deg)';
         }
 
         function showZoom(text) {
