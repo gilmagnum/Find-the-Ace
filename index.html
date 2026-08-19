@@ -74,9 +74,12 @@
             if (!persistent) {
                 banner.classList.add('fade-anim');
                 setTimeout(() => {
-                    banner.style.display = 'none';
-                    banner.classList.remove('fade-anim');
-                }, 2000);
+                    // מוודאים שלא נעלם אם הפך בינתיים לקבוע
+                    if (!isGameOver) {
+                        banner.style.display = 'none';
+                        banner.classList.remove('fade-anim');
+                    }
+                }, 4000); // הארכת זמן הצגת ההודעות הרגילות ל-4 שניות
             } else {
                 banner.classList.remove('fade-anim');
             }
@@ -281,7 +284,6 @@
         }
 
         function showZoom(text, isLastAce) {
-            // באס האחרון מנגנים קודם את הצליל הרגיל של האס בהצגת הזום, והסאונד הנוסף ינוגן בהודעה
             playSound('tada');
 
             const container = document.getElementById('zoom-container');
@@ -314,9 +316,9 @@
             isGameOver = true;
             clearInterval(timer);
             if (won) {
-                // מנגנים את צליל הניצחון המיוחד בדיוק בזמן הצגת הודעת מלך האס פרס
                 playSound('megaTada');
                 document.getElementById('zoom-container').style.display = 'none';
+                // הודעה קבועה שלא נעלמת עד ללחיצה על המסך או ערבב מחדש
                 showMessage("כל האסים נמצאו - אתה מלך האס פרס ! 👑", true);
                 confettiInterval = setInterval(() => {
                     confetti({ particleCount: 50, spread: 120, origin: { y: Math.random() }, zIndex: 999 });
