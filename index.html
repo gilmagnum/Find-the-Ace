@@ -29,7 +29,7 @@
     <div id="board"></div>
     <div class="controls">
         <button id="clear-btn" onclick="clearBurnedCards()">נקה קלפים שרופים</button>
-        <button onclick="location.reload()">איפוס</button>
+        <button onclick="resetGame()">איפוס</button>
     </div>
 
     <div id="zoom-container" onclick="closeZoom()">
@@ -40,7 +40,6 @@
     <script>
         let acesFound = 0, cardsLeft = 52, timer = null, timeLeft = 30, useTimer = false;
         
-        // יצירת מנוע סאונד מובנה (Web Audio API) לצלילי "משיכה" ו-"טאדה!"
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playSound(type) {
@@ -49,56 +48,66 @@
             }
             const now = audioCtx.currentTime;
 
-            if (type === 'slide') {
-                // צליל משיכה / החלקה (רעש לבן עם סינון תדרים יורד)
-                const bufferSize = audioCtx.sampleRate * 0.12;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-                const noise = audioCtx.createBufferSource();
-                noise.buffer = buffer;
-
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(800, now);
-                filter.frequency.exponentialRampToValueAtTime(200, now + 0.12);
-
+            if (type === 'click') {
+                // צליל קליק קצר לכפתורים
+                const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-
-                noise.connect(filter);
-                filter.connect(gain);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.04);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+                osc.connect(gain);
                 gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.04);
 
-                noise.start(now);
-                noise.stop(now + 0.12);
+            } else if (type === 'pageFlip') {
+                // צליל הפיכת דף בקטלוג דיגיטלי (סוויפ רך עם תדר עולה-יורד)
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.linearRampToValueAtTime(450, now + 0.08);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.16);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.16);
 
             } else if (type === 'tada') {
-                // צליל טאדה! (אקורד חגיגי בשלושה שלבים: C5 -> E5 -> G5+C6)
-                const notes = [523.25, 659.25, 783.99, 1046.50];
-                notes.forEach((freq, index) => {
+                // צליל "טאדדה!" סטייל וינדוס (אקורד פיוז'ן עשיר ומדורג)
+                const notes = [
+                    { f: 440.00, t: 0.0, d: 0.15 }, // A4
+                    { f: 554.37, t: 0.1, d: 0.15 }, // C#5
+                    { f: 659.25, t: 0.2, d: 0.15 }, // E5
+                    { f: 880.00, t: 0.3, d: 0.5  }  // A5
+                ];
+
+                notes.forEach(n => {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.type = index === 3 ? 'triangle' : 'sine';
-                    osc.frequency.setValueAtTime(freq, now + index * 0.1);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(n.f, now + n.t);
 
-                    gain.gain.setValueAtTime(0, now + index * 0.1);
-                    gain.gain.linearRampToValueAtTime(0.2, now + index * 0.1 + 0.05);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.1 + 0.5);
+                    gain.gain.setValueAtTime(0, now + n.t);
+                    gain.gain.linearRampToValueAtTime(0.25, now + n.t + 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
 
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
-
-                    osc.start(now + index * 0.1);
-                    osc.stop(now + index * 0.1 + 0.5);
+                    osc.start(now + n.t);
+                    osc.stop(now + n.t + n.d);
                 });
             }
         }
 
         function startGame(withTimer) {
+            playSound('click');
             useTimer = withTimer;
             document.getElementById('menu').style.display = 'none';
             if (audioCtx.state === 'suspended') {
@@ -112,6 +121,11 @@
                 }, 1000);
             }
             initBoard();
+        }
+
+        function resetGame() {
+            playSound('click');
+            location.reload();
         }
 
         function initBoard() {
@@ -136,7 +150,7 @@
 
         function flipCard(el, card) {
             if (el.classList.contains('flipped') || acesFound >= 4) return;
-            playSound('slide');
+            playSound('pageFlip');
             el.classList.add('flipped');
             el.innerText = card.v + card.s;
             cardsLeft--;
@@ -149,7 +163,7 @@
         }
 
         function clearBurnedCards() {
-            playSound('slide');
+            playSound('pageFlip');
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
                 if (card.classList.contains('flipped') && !card.classList.contains('ace')) {
