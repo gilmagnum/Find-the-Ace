@@ -57,7 +57,7 @@
         <button onclick="resetGame()">ערבב מחדש</button>
     </div>
 
-    <div id="zoom-container" onclick="closeZoom()">
+    <div id="zoom-container" onclick="closeZoom(event)">
         <div id="zoom-card"></div>
     </div>
 
@@ -207,7 +207,7 @@
             if (isGameOver && e.target.tagName !== 'BUTTON') {
                 clearInterval(confettiInterval);
                 document.getElementById('message-banner').style.display = 'none';
-                isGameOver = false;
+                document.getElementById('zoom-container').style.display = 'none';
             }
         }
 
@@ -294,9 +294,11 @@
             if (acesFound === 4) {
                 showMessage("מצאת אס!");
                 setTimeout(() => {
-                    closeZoom();
-                    endGame(true);
-                }, 2000);
+                    if (acesFound === 4 && !isGameOver) {
+                        document.getElementById('zoom-container').style.display = 'none';
+                        endGame(true);
+                    }
+                }, 1800);
             } else {
                 showMessage("מצאת אס!");
             }
@@ -306,7 +308,8 @@
             }, 300);
         }
 
-        function closeZoom() {
+        function closeZoom(e) {
+            if (e) e.stopPropagation();
             if (acesFound < 4) {
                 document.getElementById('zoom-container').style.display = 'none';
             }
@@ -316,6 +319,7 @@
             isGameOver = true;
             clearInterval(timer);
             if (won) {
+                document.getElementById('zoom-container').style.display = 'none';
                 showMessage("כל האסים נמצאו - אתה מלך האס פרס ! 👑", true);
                 confettiInterval = setInterval(() => {
                     confetti({ particleCount: 50, spread: 120, origin: { y: Math.random() }, zIndex: 999 });
