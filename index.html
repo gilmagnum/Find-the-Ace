@@ -39,13 +39,44 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         let acesFound = 0, cardsLeft = 52, timer = null, timeLeft = 30, useTimer = false;
-        const flipSound = new Audio('https://actions.google.com/sounds/v1/foley/paper_card_flip.ogg');
-        const winSound = new Audio('https://actions.google.com/sounds/v1/foley/small_bell_ring.ogg');
-        flipSound.load(); winSound.load();
+        
+        // יצירת מנוע סאונד פנימי של הדפדפן (Web Audio API) עוקף חסימות
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'flip') {
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } else if (type === 'win') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            }
+        }
 
         function startGame(withTimer) {
             useTimer = withTimer;
             document.getElementById('menu').style.display = 'none';
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
             if (useTimer) {
                 timer = setInterval(() => {
                     timeLeft--;
@@ -78,7 +109,7 @@
 
         function flipCard(el, card) {
             if (el.classList.contains('flipped') || acesFound >= 4) return;
-            flipSound.play();
+            playSound('flip');
             el.classList.add('flipped');
             el.innerText = card.v + card.s;
             cardsLeft--;
@@ -100,7 +131,7 @@
         }
 
         function showZoom(text) {
-            winSound.play();
+            playSound('win');
             const container = document.getElementById('zoom-container');
             document.getElementById('zoom-card').innerText = text;
             container.style.display = 'flex';
