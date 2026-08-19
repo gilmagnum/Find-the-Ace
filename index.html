@@ -20,7 +20,6 @@
         .stats { font-size: 0.9em; margin: 5px 0; font-weight: bold; }
         
         #ace-slots { position: relative; z-index: 150; display: flex; justify-content: center; gap: 10px; padding-bottom: 10px; background: rgba(0, 0, 0, 0.3); border-top: 2px solid rgba(0,0,0,0.2); }
-        /* סלוט מעוצב שמכיל את הקלף בצורה מושלמת */
         .slot { position: relative; width: 45px; height: 65px; border: 2px dashed rgba(255, 255, 255, 0.4); border-radius: 4px; background: rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; }
         .slot .card { position: relative !important; left: auto !important; top: auto !important; transform: rotate(0deg) !important; width: 100% !important; height: 100% !important; margin: 0; }
 
@@ -34,7 +33,7 @@
         button { padding: 10px 15px; font-size: 0.9em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 3px; font-weight: bold; }
     </style>
 </head>
-<body>
+<body onclick="handleScreenClick(event)">
     <div id="message-banner"></div>
 
     <div id="menu">
@@ -146,10 +145,27 @@
                     osc.start(now + note.t);
                     osc.stop(now + note.t + note.d);
                 });
+            } else if (type === 'megaTada') {
+                // צליל ניצחון כפול ומיוחד לאס האחרון
+                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+                notes.forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.08));
+                    gain.gain.setValueAtTime(0, now + (i * 0.08));
+                    gain.gain.linearRampToValueAtTime(0.3, now + (i * 0.08) + 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.08) + 0.5);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + (i * 0.08));
+                    osc.stop(now + (i * 0.08) + 0.5);
+                });
             }
         }
 
         function startGame(withTimer) {
+            event.stopPropagation();
             playSound('click');
             useTimer = withTimer;
             document.getElementById('menu').style.display = 'none';
@@ -168,6 +184,7 @@
             timeLeft = 30;
             globalZIndex = 1;
 
+            document.getElementById('message-bannerstyle').display = 'none';
             document.getElementById('message-banner').style.display = 'none';
             document.getElementById('zoom-container').style.display = 'none';
 
@@ -183,8 +200,17 @@
         }
 
         function resetGame() {
+            if (event) event.stopPropagation();
             playSound('click');
             startRound();
+        }
+
+        function handleScreenClick(e) {
+            // קליק על המסך בסיום המשחק מעלים את ההודעה והקונפטי ומחזיר למסך המשחק (ממתין ללחיצה על ערבב מחדש)
+            if (isGameOver && e.target.tagName !== 'BUTTON') {
+                clearInterval(confettiInterval);
+                document.getElementById('message-banner').style.display = 'none';
+            }
         }
 
         function initBoard() {
@@ -234,7 +260,7 @@
                 el.classList.add('ace');
                 const currentAceIndex = acesFound;
                 acesFound++;
-                showZoom(card.v + card.s);
+                showZoom(card.v + card.s, acesFound === 4);
 
                 setTimeout(() => {
                     moveAceToSlot(el, currentAceIndex);
@@ -256,8 +282,13 @@
             slot.appendChild(el);
         }
 
-        function showZoom(text) {
-            playSound('tada');
+        function showZoom(text, isLastAce) {
+            if (isLastAce) {
+                playSound('megaTada');
+            } else {
+                playSound('tada');
+            }
+
             const container = document.getElementById('zoom-container');
             document.getElementById('zoom-card').innerText = text;
             container.style.display = 'flex';
