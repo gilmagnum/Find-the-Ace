@@ -34,8 +34,12 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         let acesFound = 0, cardsLeft = 52, timer = null, timeLeft = 30, useTimer = false;
+        // טעינת צלילים
         const flipSound = new Audio('https://actions.google.com/sounds/v1/foley/paper_card_flip.ogg');
         const winSound = new Audio('https://actions.google.com/sounds/v1/foley/small_bell_ring.ogg');
+        
+        // טעינה מוקדמת למניעת השהייה
+        flipSound.load(); winSound.load();
 
         function startGame(withTimer) {
             useTimer = withTimer;
@@ -73,6 +77,8 @@
 
         function flipCard(el, card) {
             if (el.classList.contains('flipped') || acesFound >= 4) return;
+            // השמעת סאונד - יפעל אחרי הלחיצה הראשונה בתפריט
+            flipSound.currentTime = 0;
             flipSound.play();
             el.classList.add('flipped');
             el.innerText = card.v + card.s;
