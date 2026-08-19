@@ -40,34 +40,61 @@
     <script>
         let acesFound = 0, cardsLeft = 52, timer = null, timeLeft = 30, useTimer = false;
         
-        // יצירת מנוע סאונד פנימי של הדפדפן (Web Audio API) עוקף חסימות
+        // יצירת מנוע סאונד מובנה (Web Audio API) לצלילי "משיכה" ו-"טאדה!"
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playSound(type) {
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
 
-            if (type === 'flip') {
-                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.08);
-            } else if (type === 'win') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
-                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.4);
+            if (type === 'slide') {
+                // צליל משיכה / החלקה (רעש לבן עם סינון תדרים יורד)
+                const bufferSize = audioCtx.sampleRate * 0.12;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(800, now);
+                filter.frequency.exponentialRampToValueAtTime(200, now + 0.12);
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                noise.start(now);
+                noise.stop(now + 0.12);
+
+            } else if (type === 'tada') {
+                // צליל טאדה! (אקורד חגיגי בשלושה שלבים: C5 -> E5 -> G5+C6)
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, index) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = index === 3 ? 'triangle' : 'sine';
+                    osc.frequency.setValueAtTime(freq, now + index * 0.1);
+
+                    gain.gain.setValueAtTime(0, now + index * 0.1);
+                    gain.gain.linearRampToValueAtTime(0.2, now + index * 0.1 + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.1 + 0.5);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(now + index * 0.1);
+                    osc.stop(now + index * 0.1 + 0.5);
+                });
             }
         }
 
@@ -109,7 +136,7 @@
 
         function flipCard(el, card) {
             if (el.classList.contains('flipped') || acesFound >= 4) return;
-            playSound('flip');
+            playSound('slide');
             el.classList.add('flipped');
             el.innerText = card.v + card.s;
             cardsLeft--;
@@ -122,6 +149,7 @@
         }
 
         function clearBurnedCards() {
+            playSound('slide');
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
                 if (card.classList.contains('flipped') && !card.classList.contains('ace')) {
@@ -131,7 +159,7 @@
         }
 
         function showZoom(text) {
-            playSound('win');
+            playSound('tada');
             const container = document.getElementById('zoom-container');
             document.getElementById('zoom-card').innerText = text;
             container.style.display = 'flex';
