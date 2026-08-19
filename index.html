@@ -7,14 +7,16 @@
     <style>
         body { font-family: sans-serif; background-color: #1a1a1a; text-align: center; margin: 0; padding: 5px; color: white; overflow: hidden; touch-action: manipulation; }
         #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #board { position: relative; width: 95vw; height: 65vh; margin: 10px auto; background-color: #2e7d32; border: 5px solid #5d4037; border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
+        #board { position: relative; width: 95vw; height: 60vh; margin: 5px auto; background-color: #2e7d32; border: 5px solid #5d4037; border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
         .card { position: absolute; width: 45px; height: 65px; background-color: #34495e; color: transparent; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: all 0.4s; border: 1px solid #7f8c8d; user-select: none; }
         .card.flipped { background-color: #fff; color: #000; transform: rotateY(0deg) !important; }
         .card.ace { background-color: #ffeb3b; border: 3px solid #f44336; z-index: 100; }
-        .stats { font-size: 1em; margin: 10px 0; font-weight: bold; }
+        .stats { font-size: 0.9em; margin: 5px 0; font-weight: bold; }
         #zoom-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 300; align-items: center; justify-content: center; }
         #zoom-card { width: 150px; height: 210px; background: white; color: black; font-size: 4em; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 5px solid gold; }
-        button { padding: 12px 25px; font-size: 1.1em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 5px; font-weight: bold; }
+        .controls { display: flex; justify-content: center; flex-wrap: wrap; }
+        button { padding: 10px 15px; font-size: 0.9em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 3px; font-weight: bold; }
+        #clear-btn { background-color: #1976d2; }
     </style>
 </head>
 <body>
@@ -25,7 +27,10 @@
     </div>
     <div class="stats" id="stats">קלפים: 52 | אסים: 0/4</div>
     <div id="board"></div>
-    <button onclick="location.reload()">איפוס משחק</button>
+    <div class="controls">
+        <button id="clear-btn" onclick="clearBurnedCards()">נקה קלפים שרופים</button>
+        <button onclick="location.reload()">איפוס</button>
+    </div>
 
     <div id="zoom-container" onclick="closeZoom()">
         <div id="zoom-card"></div>
@@ -34,11 +39,8 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         let acesFound = 0, cardsLeft = 52, timer = null, timeLeft = 30, useTimer = false;
-        // טעינת צלילים
         const flipSound = new Audio('https://actions.google.com/sounds/v1/foley/paper_card_flip.ogg');
         const winSound = new Audio('https://actions.google.com/sounds/v1/foley/small_bell_ring.ogg');
-        
-        // טעינה מוקדמת למניעת השהייה
         flipSound.load(); winSound.load();
 
         function startGame(withTimer) {
@@ -70,15 +72,12 @@
                     div.style.top = (Math.random() * 80 + 5) + '%';
                     div.style.transform = `rotate(${Math.random() * 60 - 30}deg)`;
                 }, i * 15);
-                
                 div.onclick = () => flipCard(div, card);
             });
         }
 
         function flipCard(el, card) {
             if (el.classList.contains('flipped') || acesFound >= 4) return;
-            // השמעת סאונד - יפעל אחרי הלחיצה הראשונה בתפריט
-            flipSound.currentTime = 0;
             flipSound.play();
             el.classList.add('flipped');
             el.innerText = card.v + card.s;
@@ -91,19 +90,22 @@
             updateStats();
         }
 
+        function clearBurnedCards() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                if (card.classList.contains('flipped') && !card.classList.contains('ace')) {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
         function showZoom(text) {
             winSound.play();
             const container = document.getElementById('zoom-container');
             document.getElementById('zoom-card').innerText = text;
             container.style.display = 'flex';
-            
             setTimeout(() => {
-                confetti({ 
-                    particleCount: 150, 
-                    spread: 100, 
-                    origin: { y: 0.5 },
-                    zIndex: 999 
-                });
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 }, zIndex: 999 });
             }, 300);
             if (acesFound === 4) setTimeout(() => endGame(true), 2000);
         }
