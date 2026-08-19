@@ -59,51 +59,88 @@
                 gain.connect(audioCtx.destination);
                 osc.start(now);
                 osc.stop(now + 0.04);
-            } else if (type === 'flip') {
-                // צליל הפיכת קלף עשיר ומעט ארוך יותר (שילוב רעש מסונן ומנגינת החלקה)
-                const bufferSize = audioCtx.sampleRate * 0.18;
+
+            } else if (type === 'cardFlip') {
+                // צליל הפיכת קלף ריאליסטי: שילוב של טפחה מהירה וסנכרון תדרי נייר (Pop + Shimmer קצר)
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.06);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.09);
+
+            } else if (type === 'shuffle') {
+                // צליל ערבוב / טאטוא קלפים ממושך (רעש רחש קולחי)
+                const bufferSize = audioCtx.sampleRate * 0.4;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) {
-                    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+                    data[i] = (Math.random() * 2 - 1) * Math.sin(i / 50);
                 }
                 const noise = audioCtx.createBufferSource();
                 noise.buffer = buffer;
 
                 const filter = audioCtx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(400, now);
-                filter.frequency.exponentialRampToValueAtTime(1500, now + 0.18);
-                filter.Q.value = 2;
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(1000, now);
 
                 const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0.25, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.4);
 
                 noise.connect(filter);
                 filter.connect(gain);
                 gain.connect(audioCtx.destination);
 
                 noise.start(now);
-                noise.stop(now + 0.18);
+                noise.stop(now + 0.4);
+
+            } else if (type === 'sweep') {
+                // צליל ניקוי קלפים (סוויפ החלקה נעים)
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+
             } else if (type === 'tada') {
-                // צליל ניצחון מגניב, עשיר ושמח בסגנון ארקייד/קזינו (ג'ינגל עולה מהיר)
-                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
-                notes.forEach((freq, i) => {
+                // צליל טאדה מנצח ומרגש (אקורד פיוז'ן עשיר בארבעה שלבים)
+                const chord = [
+                    { f: 392.00, t: 0.0,  d: 0.2 }, 
+                    { f: 523.25, t: 0.12, d: 0.2 }, 
+                    { f: 659.25, t: 0.24, d: 0.2 }, 
+                    { f: 783.99, t: 0.36, d: 0.7 }  
+                ];
+
+                chord.forEach(note => {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.type = i === notes.length - 1 ? 'triangle' : 'sine';
-                    osc.frequency.setValueAtTime(freq, now + (i * 0.09));
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(note.f, now + note.t);
 
-                    gain.gain.setValueAtTime(0, now + (i * 0.09));
-                    gain.gain.linearRampToValueAtTime(0.2, now + (i * 0.09) + 0.02);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.09) + 0.35);
+                    gain.gain.setValueAtTime(0, now + note.t);
+                    gain.gain.linearRampToValueAtTime(0.25, now + note.t + 0.04);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + note.t + note.d);
 
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
 
-                    osc.start(now + (i * 0.09));
-                    osc.stop(now + (i * 0.09) + 0.35);
+                    osc.start(now + note.t);
+                    osc.stop(now + note.t + note.d);
                 });
             }
         }
@@ -122,6 +159,7 @@
                     if (timeLeft <= 0) endGame(false);
                 }, 1000);
             }
+            playSound('shuffle');
             initBoard();
         }
 
@@ -153,9 +191,8 @@
 
         function flipCard(el, card) {
             if (el.classList.contains('flipped') || acesFound >= 4) return;
-            playSound('flip');
+            playSound('cardFlip');
             
-            // הקלף האחרון שנהפך מקבל z-index גבוה יותר כדי שיהיה תמיד מעל האחרים
             el.style.zIndex = ++globalZIndex;
             
             el.classList.add('flipped');
@@ -170,7 +207,7 @@
         }
 
         function clearBurnedCards() {
-            playSound('flip');
+            playSound('sweep');
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
                 if (card.classList.contains('flipped') && !card.classList.contains('ace')) {
