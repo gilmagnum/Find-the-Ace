@@ -7,7 +7,7 @@
     <style>
         body { font-family: sans-serif; background-color: #1a1a1a; text-align: center; margin: 0; padding: 5px; color: white; overflow: hidden; touch-action: manipulation; }
         #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #board { position: relative; width: 95vw; height: 60vh; margin: 5px auto; background-color: #2e7d32; border: 5px solid #5d4037; border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
+        #board { position: relative; width: 95vw; height: 65vh; margin: 5px auto; background-color: #2e7d32; border: 5px solid #5d4037; border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
         .card { position: absolute; width: 45px; height: 65px; background-color: #34495e; color: transparent; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: all 0.4s; border: 1px solid #7f8c8d; user-select: none; }
         .card.flipped { background-color: #fff; color: #000; transform: rotateY(0deg) !important; z-index: 50; }
         .card.ace { background-color: #ffeb3b; border: 3px solid #f44336; z-index: 100; }
@@ -16,7 +16,6 @@
         #zoom-card { width: 150px; height: 210px; background: white; color: black; font-size: 4em; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 5px solid gold; }
         .controls { display: flex; justify-content: center; flex-wrap: wrap; }
         button { padding: 10px 15px; font-size: 0.9em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 3px; font-weight: bold; }
-        #clear-btn { background-color: #1976d2; }
     </style>
 </head>
 <body>
@@ -28,7 +27,6 @@
     <div class="stats" id="stats">קלפים: 52 | אסים: 0/4</div>
     <div id="board"></div>
     <div class="controls">
-        <button id="clear-btn" onclick="clearBurnedCards()">נקה קלפים שרופים</button>
         <button onclick="resetGame()">איפוס</button>
     </div>
 
@@ -61,23 +59,27 @@
                 osc.stop(now + 0.04);
 
             } else if (type === 'cardFlip') {
-                // צליל הפיכת קלף ריאליסטי: שילוב של טפחה מהירה וסנכרון תדרי נייר (Pop + Shimmer קצר)
+                // גרסה חדשה לצליל משיכת/הפיכת קלף: נקישה רכה שמתפתחת לשיוף דק (כמו קלף שמתנתק מהערימה)
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.exponentialRampToValueAtTime(700, now + 0.06);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.12);
 
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1000, now);
 
-                osc.connect(gain);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+                osc.connect(filter);
+                filter.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start(now);
-                osc.stop(now + 0.09);
+                osc.stop(now + 0.12);
 
             } else if (type === 'shuffle') {
-                // צליל ערבוב / טאטוא קלפים ממושך (רעש רחש קולחי)
                 const bufferSize = audioCtx.sampleRate * 0.4;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const data = buffer.getChannelData(0);
@@ -86,39 +88,19 @@
                 }
                 const noise = audioCtx.createBufferSource();
                 noise.buffer = buffer;
-
                 const filter = audioCtx.createBiquadFilter();
                 filter.type = 'highpass';
                 filter.frequency.setValueAtTime(1000, now);
-
                 const gain = audioCtx.createGain();
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.4);
-
                 noise.connect(filter);
                 filter.connect(gain);
                 gain.connect(audioCtx.destination);
-
                 noise.start(now);
                 noise.stop(now + 0.4);
 
-            } else if (type === 'sweep') {
-                // צליל ניקוי קלפים (סוויפ החלקה נעים)
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.linearRampToValueAtTime(800, now + 0.15);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.15);
-
             } else if (type === 'tada') {
-                // צליל טאדה מנצח ומרגש (אקורד פיוז'ן עשיר בארבעה שלבים)
                 const chord = [
                     { f: 392.00, t: 0.0,  d: 0.2 }, 
                     { f: 523.25, t: 0.12, d: 0.2 }, 
@@ -194,26 +176,24 @@
             playSound('cardFlip');
             
             el.style.zIndex = ++globalZIndex;
-            
             el.classList.add('flipped');
             el.innerText = card.v + card.s;
             cardsLeft--;
+
             if (card.v === 'A') {
                 el.classList.add('ace');
                 acesFound++;
                 showZoom(card.v + card.s);
+            } else {
+                // הסרת הקלף אוטומטית אחרי 1.5 שניות אם אינו אס
+                setTimeout(() => {
+                    el.style.transition = 'opacity 0.5s, transform 0.5s';
+                    el.style.opacity = '0';
+                    el.style.transform += ' scale(0.5)';
+                    setTimeout(() => el.remove(), 500);
+                }, 1500);
             }
             updateStats();
-        }
-
-        function clearBurnedCards() {
-            playSound('sweep');
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                if (card.classList.contains('flipped') && !card.classList.contains('ace')) {
-                    card.style.display = 'none';
-                }
-            });
         }
 
         function showZoom(text) {
