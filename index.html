@@ -14,7 +14,7 @@
         .card.ace { background-color: #ffeb3b; border: 3px solid #f44336; z-index: 100; }
         .stats { font-size: 0.9em; margin: 5px 0; font-weight: bold; }
         
-        #message-banner { display: none; position: fixed; top: 15%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.85); color: #ffeb3b; padding: 12px 25px; border-radius: 30px; font-size: 1.4em; font-weight: bold; z-index: 400; border: 2px solid gold; pointer-events: none; }
+        #message-banner { display: none; position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.9); color: #ffeb3b; padding: 10px 20px; border-radius: 30px; font-size: 1.2em; font-weight: bold; z-index: 400; border: 2px solid gold; pointer-events: none; }
         .fade-anim { animation: fadeInOut 2s ease; }
         @keyframes fadeInOut { 0% { opacity: 0; transform: translate(-50%, -20px); } 20% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -20px); } }
 
@@ -24,7 +24,7 @@
         button { padding: 10px 15px; font-size: 0.9em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 3px; font-weight: bold; }
     </style>
 </head>
-<body>
+<body onclick="handleScreenClick()">
     <div id="message-banner"></div>
 
     <div id="menu">
@@ -130,6 +130,7 @@
         }
 
         function startGame(withTimer) {
+            event.stopPropagation();
             playSound('click');
             useTimer = withTimer;
             document.getElementById('menu').style.display = 'none';
@@ -148,8 +149,15 @@
         }
 
         function resetGame() {
+            event.stopPropagation();
             playSound('click');
             location.reload();
+        }
+
+        function handleScreenClick() {
+            if (isGameOver) {
+                resetGame();
+            }
         }
 
         function initBoard() {
@@ -172,7 +180,10 @@
                     div.style.top = (Math.random() * 80 + 5) + '%';
                     div.style.transform = `rotate(${Math.random() * 60 - 30}deg)`;
                 }, i * 15);
-                div.onclick = () => flipCard(div, card);
+                div.onclick = (e) => {
+                    e.stopPropagation();
+                    flipCard(div, card);
+                };
             });
         }
 
@@ -232,7 +243,6 @@
             clearInterval(timer);
             if (won) {
                 showMessage("כל האסים נמצאו - אתה מלך האס פרס ! 👑", true);
-                // הפעלת קונפטי רציף עד לאיפוס
                 confettiInterval = setInterval(() => {
                     confetti({ particleCount: 50, spread: 120, origin: { y: Math.random() }, zIndex: 999 });
                 }, 1000);
