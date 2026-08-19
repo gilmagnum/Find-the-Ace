@@ -24,7 +24,7 @@
         button { padding: 10px 15px; font-size: 0.9em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 3px; font-weight: bold; }
     </style>
 </head>
-<body onclick="handleScreenClick()">
+<body onclick="handleScreenClick(event)">
     <div id="message-banner"></div>
 
     <div id="menu">
@@ -149,13 +149,14 @@
         }
 
         function resetGame() {
-            event.stopPropagation();
+            if (event) event.stopPropagation();
             playSound('click');
             location.reload();
         }
 
-        function handleScreenClick() {
-            if (isGameOver) {
+        function handleScreenClick(e) {
+            // אם המשחק הסתיים והמשתמש לחץ על הרקע (ולא על כפתור), נאפס את המשחק
+            if (isGameOver && e.target.tagName !== 'BUTTON') {
                 resetGame();
             }
         }
