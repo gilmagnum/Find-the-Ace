@@ -281,23 +281,18 @@
         }
 
         function showZoom(text, isLastAce) {
-            if (isLastAce) {
-                playSound('megaTada');
-            } else {
-                playSound('tada');
-            }
+            // באס האחרון מנגנים קודם את הצליל הרגיל של האס בהצגת הזום, והסאונד הנוסף ינוגן בהודעה
+            playSound('tada');
 
             const container = document.getElementById('zoom-container');
             document.getElementById('zoom-card').innerText = text;
             container.style.display = 'flex';
             
-            if (acesFound === 4) {
+            if (isLastAce) {
                 showMessage("מצאת אס!");
                 setTimeout(() => {
-                    if (acesFound === 4 && !isGameOver) {
-                        document.getElementById('zoom-container').style.display = 'none';
-                        endGame(true);
-                    }
+                    closeZoom();
+                    endGame(true);
                 }, 1800);
             } else {
                 showMessage("מצאת אס!");
@@ -319,6 +314,8 @@
             isGameOver = true;
             clearInterval(timer);
             if (won) {
+                // מנגנים את צליל הניצחון המיוחד בדיוק בזמן הצגת הודעת מלך האס פרס
+                playSound('megaTada');
                 document.getElementById('zoom-container').style.display = 'none';
                 showMessage("כל האסים נמצאו - אתה מלך האס פרס ! 👑", true);
                 confettiInterval = setInterval(() => {
