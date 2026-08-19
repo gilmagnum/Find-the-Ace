@@ -3,27 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>משחק אס-פרס</title>
+    <title>אס-פרס קזינו</title>
     <style>
-        body { font-family: sans-serif; background-color: #2c3e50; text-align: center; margin: 0; padding: 5px; color: white; overflow: hidden; touch-action: manipulation; }
+        body { font-family: sans-serif; background-color: #1a1a1a; text-align: center; margin: 0; padding: 5px; color: white; overflow: hidden; touch-action: manipulation; }
         #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #board { position: relative; width: 100vw; height: 70vh; margin: 5px auto; border: 2px dashed #bdc3c7; border-radius: 10px; overflow: hidden; }
-        .card { position: absolute; width: 50px; height: 75px; background-color: #34495e; color: transparent; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; font-size: 1.2em; font-weight: bold; transition: all 0.3s; border: 1px solid #7f8c8d; user-select: none; }
-        .card.flipped { background-color: #ecf0f1; color: #2c3e50; }
-        .card.ace { background-color: #e74c3c; color: white; border: 3px solid #c0392b; z-index: 10; }
-        .stats { font-size: 0.9em; margin-bottom: 5px; }
-        button { padding: 10px 20px; font-size: 1em; cursor: pointer; background-color: #27ae60; color: white; border: none; border-radius: 5px; margin: 5px; }
+        #board { position: relative; width: 95vw; height: 65vh; margin: 10px auto; background-color: #2e7d32; border: 5px solid #5d4037; border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
+        .card { position: absolute; width: 45px; height: 65px; background-color: #34495e; color: transparent; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: all 0.4s; border: 1px solid #7f8c8d; user-select: none; }
+        .card.flipped { background-color: #fff; color: #000; transform: rotateY(0deg) !important; }
+        .card.ace { background-color: #ffeb3b; border: 3px solid #f44336; z-index: 100; }
+        .stats { font-size: 1em; margin: 10px 0; font-weight: bold; }
+        #zoom-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 300; align-items: center; justify-content: center; }
+        #zoom-card { width: 150px; height: 210px; background: white; color: black; font-size: 4em; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 5px solid gold; }
+        button { padding: 12px 25px; font-size: 1.1em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="menu">
-        <h1>משחק אס-פרס</h1>
+        <h1>אס-פרס קזינו</h1>
         <button onclick="startGame(false)">משחק חופשי</button>
-        <button onclick="startGame(true)">נגד הטיימר (30 שניות)</button>
+        <button onclick="startGame(true)">טיימר (30 שניות)</button>
     </div>
-    <div class="stats" id="stats">קלפים: 52 | אסים: 0/4 | זמן: -</div>
+    <div class="stats" id="stats">קלפים: 52 | אסים: 0/4</div>
     <div id="board"></div>
-    <button onclick="location.reload()">איפוס</button>
+    <button onclick="location.reload()">איפוס משחק</button>
+
+    <div id="zoom-container" onclick="closeZoom()">
+        <div id="zoom-card"></div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
@@ -53,11 +59,11 @@
             deck.forEach((card, i) => {
                 const div = document.createElement('div');
                 div.className = 'card';
-                div.style.left = '50%'; div.style.top = '50%';
+                div.style.left = '45%'; div.style.top = '45%';
                 board.appendChild(div);
                 setTimeout(() => {
-                    div.style.left = (Math.random() * 80 + 5) + '%';
-                    div.style.top = (Math.random() * 70 + 5) + '%';
+                    div.style.left = (Math.random() * 85 + 2) + '%';
+                    div.style.top = (Math.random() * 80 + 5) + '%';
                     div.style.transform = `rotate(${Math.random() * 60 - 30}deg)`;
                 }, i * 15);
                 
@@ -74,11 +80,24 @@
             if (card.v === 'A') {
                 el.classList.add('ace');
                 acesFound++;
-                winSound.play();
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                if (acesFound === 4) endGame(true);
+                showZoom(card.v + card.s);
             }
             updateStats();
+        }
+
+        function showZoom(text) {
+            winSound.play();
+            const container = document.getElementById('zoom-container');
+            document.getElementById('zoom-card').innerText = text;
+            container.style.display = 'flex';
+            setTimeout(() => {
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+            }, 300);
+            if (acesFound === 4) setTimeout(() => endGame(true), 2000);
+        }
+
+        function closeZoom() {
+            document.getElementById('zoom-container').style.display = 'none';
         }
 
         function endGame(won) {
@@ -87,7 +106,7 @@
         }
 
         function updateStats() {
-            document.getElementById('stats').innerText = `קלפים: ${cardsLeft} | אסים: ${acesFound}/4 | זמן: ${useTimer ? timeLeft : '-'}`;
+            document.getElementById('stats').innerText = `קלפים: ${cardsLeft} | אסים: ${acesFound}/4 ${useTimer ? '| זמן: ' + timeLeft : ''}`;
         }
     </script>
 </body>
