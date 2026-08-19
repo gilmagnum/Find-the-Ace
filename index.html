@@ -8,7 +8,6 @@
         body { font-family: sans-serif; background-color: #1a1a1a; text-align: center; margin: 0; padding: 5px; color: white; overflow: hidden; touch-action: manipulation; }
         #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
-        /* אזור המשחק המרכזי שומר על הקלפים והסלוטים בתוכו */
         #game-container { position: relative; width: 95vw; height: 75vh; margin: 0 auto; background-color: #2e7d32; border: 5px solid #5d4037; border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: flex-end; }
         
         #board { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 80px); }
@@ -20,9 +19,10 @@
         
         .stats { font-size: 0.9em; margin: 5px 0; font-weight: bold; }
         
-        /* סלוטים לאסים מעוגנים בתחתית לוח המשחק */
         #ace-slots { position: relative; z-index: 150; display: flex; justify-content: center; gap: 10px; padding-bottom: 10px; background: rgba(0, 0, 0, 0.3); border-top: 2px solid rgba(0,0,0,0.2); }
-        .slot { width: 45px; height: 65px; border: 2px dashed rgba(255, 255, 255, 0.4); border-radius: 4px; background: rgba(0, 0, 0, 0.2); }
+        /* סלוט מעוצב שמכיל את הקלף בצורה מושלמת */
+        .slot { position: relative; width: 45px; height: 65px; border: 2px dashed rgba(255, 255, 255, 0.4); border-radius: 4px; background: rgba(0, 0, 0, 0.2); display: flex; align-items: center; justify-content: center; }
+        .slot .card { position: relative !important; left: auto !important; top: auto !important; transform: rotate(0deg) !important; width: 100% !important; height: 100% !important; margin: 0; }
 
         #message-banner { display: none; position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.9); color: #ffeb3b; padding: 10px 20px; border-radius: 30px; font-size: 1.2em; font-weight: bold; z-index: 400; border: 2px solid gold; pointer-events: none; }
         .fade-anim { animation: fadeInOut 2s ease; }
@@ -44,7 +44,6 @@
     </div>
     <div class="stats" id="stats">קלפים: 52 | אסים: 0/4</div>
     
-    <!-- לוח המשחק הכולל את הקלפים והסלוטים יחד תחת אותו אלמנט אב -->
     <div id="game-container">
         <div id="board"></div>
         <div id="ace-slots">
@@ -192,7 +191,6 @@
             const board = document.getElementById('board');
             board.innerHTML = '';
             
-            // איפוס הסלוטים
             for(let i=0; i<4; i++) {
                 document.getElementById(`slot-${i}`).innerHTML = '';
             }
@@ -238,7 +236,6 @@
                 acesFound++;
                 showZoom(card.v + card.s);
 
-                // העברת האס לסלוט המיועד בתחתית לוח המשחק לאחר 1.5 שניות
                 setTimeout(() => {
                     moveAceToSlot(el, currentAceIndex);
                 }, 1500);
@@ -256,13 +253,6 @@
         function moveAceToSlot(el, slotIndex) {
             const slot = document.getElementById(`slot-${slotIndex}`);
             if (!slot) return;
-            
-            // הוצאת הקלף מלוח המשחק והכנסתו הישירה לתוך הסלוט כדי שיישאר מעוגן במקומו בצורה מושלמת
-            el.style.position = 'absolute';
-            el.style.left = '0';
-            el.style.top = '0';
-            el.style.transform = 'rotate(0deg)';
-            el.style.zIndex = '10';
             slot.appendChild(el);
         }
 
