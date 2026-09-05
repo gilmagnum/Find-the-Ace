@@ -32,14 +32,39 @@
         .controls { display: flex; justify-content: center; flex-wrap: wrap; margin-top: 5px; }
         button { padding: 10px 15px; font-size: 0.9em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 3px; font-weight: bold; }
     </style>
+<!-- arcaide-leaderboard -->
+<script src="https://gilmagnum.github.io/games/config.js"></script>
+<script src="https://gilmagnum.github.io/games/leaderboard.js"></script>
+<style>
+  .lb-btn{margin-top:10px;padding:10px 22px;border:1px solid rgba(255,255,255,.25);border-radius:12px;
+    background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+  .lb-btn:hover{background:rgba(255,255,255,.2)}
+  .lb-home{display:block;margin-top:14px;color:rgba(255,255,255,.6);font-size:13px;text-decoration:none}
+  .lb-home:hover{color:#fff}
+  #floating-scores{position:fixed;top:8px;left:8px;z-index:150}
+</style>
+<!-- arcaide-pwa: installable to the home screen -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<meta name="theme-color" content="#2c3e50">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="אס־פרס">
 </head>
 <body onclick="handleScreenClick(event)">
     <div id="message-banner"></div>
 
     <div id="menu">
         <h1>אס-פרס קזינו</h1>
-        <button onclick="startGame(false)">משחק חופשי</button>
-        <button onclick="startGame(true)">טיימר (30 שניות)</button>
+        <p style="max-width:22em;opacity:.8;font-size:.95em;line-height:1.5">
+            מצאו את 4 האסים. <b>ככל שתהפכו פחות קלפים — כך תדורגו גבוה יותר.</b>
+        </p>
+        <button onclick="startGame()">התחל משחק</button>
+        <button class="lb-btn" id="btn-scores-menu">🏆 טבלת שיאים</button>
+        <a class="lb-home" href="https://gilmagnum.github.io/games/">← כל המשחקים</a>
     </div>
     <div class="stats" id="stats">קלפים: 52 | אסים: 0/4</div>
     
@@ -63,7 +88,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
-        let acesFound = 0, cardsLeft = 52, timer = null, timeLeft = 30, useTimer = false, globalZIndex = 1, isGameOver = false, confettiInterval = null;
+        let acesFound = 0, cardsLeft = 52, globalZIndex = 1, isGameOver = false, confettiInterval = null;
         
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -166,10 +191,9 @@
             }
         }
 
-        function startGame(withTimer) {
-            event.stopPropagation();
+        function startGame() {
+            if (typeof event !== 'undefined' && event) event.stopPropagation();
             playSound('click');
-            useTimer = withTimer;
             document.getElementById('menu').style.display = 'none';
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
@@ -178,24 +202,15 @@
         }
 
         function startRound() {
-            clearInterval(timer);
             clearInterval(confettiInterval);
             isGameOver = false;
             acesFound = 0;
             cardsLeft = 52;
-            timeLeft = 30;
             globalZIndex = 1;
 
             document.getElementById('message-banner').style.display = 'none';
             document.getElementById('zoom-container').style.display = 'none';
 
-            if (useTimer) {
-                timer = setInterval(() => {
-                    timeLeft--;
-                    updateStats();
-                    if (timeLeft <= 0) endGame(false);
-                }, 1000);
-            }
             playSound('shuffle');
             initBoard();
         }
@@ -314,8 +329,11 @@
 
         function endGame(won) {
             isGameOver = true;
-            clearInterval(timer);
             if (won) {
+                const flipped = 52 - cardsLeft;   // fewer cards = better
+                if (window.Leaderboard) {
+                    setTimeout(function () { Leaderboard.gameOver(flipped, { aces: acesFound }); }, 1400);
+                }
                 playSound('megaTada');
                 document.getElementById('zoom-container').style.display = 'none';
                 // הודעה קבועה שלא נעלמת עד ללחיצה על המסך או ערבב מחדש
@@ -323,13 +341,23 @@
                 confettiInterval = setInterval(() => {
                     confetti({ particleCount: 50, spread: 120, origin: { y: Math.random() }, zIndex: 999 });
                 }, 1000);
-            } else {
-                showMessage("הזמן נגמר!");
             }
         }
 
+        // ArcAIde global leaderboard
+        if (window.Leaderboard) {
+            Leaderboard.init({
+                game: 'find-the-ace', title: 'אס־פרס קזינו',
+                scoreLabel: 'קלפים', scoreOrder: 'asc'
+            });
+            document.getElementById('btn-scores-menu')
+                .addEventListener('click', function (e) { e.stopPropagation(); Leaderboard.show(); });
+        } else {
+            document.getElementById('btn-scores-menu').style.display = 'none';
+        }
+
         function updateStats() {
-            document.getElementById('stats').innerText = `קלפים: ${cardsLeft} | אסים: ${acesFound}/4 ${useTimer ? '| זמן: ' + timeLeft : ''}`;
+            document.getElementById('stats').innerText = `נותרו: ${cardsLeft} | הפכת: ${52 - cardsLeft} | אסים: ${acesFound}/4`;
         }
     </script>
 </body>
