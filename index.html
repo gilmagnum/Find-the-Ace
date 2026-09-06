@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>אס-פרס קזינו</title>
+    <title>אס־פרס קזינו · arcAId</title>
     <style>
         body { font-family: sans-serif; background-color: #1a1a1a; text-align: center; margin: 0; padding: 5px; color: white; overflow: hidden; touch-action: manipulation; }
         #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -42,6 +42,12 @@
   .lb-home{display:block;margin-top:14px;color:rgba(255,255,255,.6);font-size:13px;text-decoration:none}
   .lb-home:hover{color:#fff}
   #floating-scores{position:fixed;top:8px;left:8px;z-index:150}
+
+/* ===== arcaide-theme: light chrome around the play area ===== */
+html[data-arcade-theme="light"] body{ background:#e9eef6; color:#1b2540; }
+html[data-arcade-theme="light"] .stats{color:#3a4a6b}
+html[data-arcade-theme="light"] #menu{background:#e9eef6;color:#1b2540}
+html[data-arcade-theme="light"] #menu p{color:#4d5b7d}
 </style>
 <!-- arcaide-pwa: installable to the home screen -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -63,8 +69,7 @@
             מצאו את 4 האסים. <b>ככל שתהפכו פחות קלפים — כך תדורגו גבוה יותר.</b>
         </p>
         <button onclick="startGame()">התחל משחק</button>
-        <button class="lb-btn" id="btn-scores-menu">🏆 טבלת שיאים</button>
-        <a class="lb-home" href="https://gilmagnum.github.io/games/">← כל המשחקים</a>
+
     </div>
     <div class="stats" id="stats">קלפים: 52 | אסים: 0/4</div>
     
@@ -110,7 +115,9 @@
             }
         }
 
+        let soundMuted = false;   // arcaide-mute
         function playSound(type) {
+            if (soundMuted) return;
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
@@ -344,16 +351,20 @@
             }
         }
 
-        // ArcAIde global leaderboard
+        // arcAId global leaderboard + shared control bar
         if (window.Leaderboard) {
             Leaderboard.init({
                 game: 'find-the-ace', title: 'אס־פרס קזינו',
                 scoreLabel: 'קלפים', scoreOrder: 'asc'
             });
-            document.getElementById('btn-scores-menu')
-                .addEventListener('click', function (e) { e.stopPropagation(); Leaderboard.show(); });
-        } else {
-            document.getElementById('btn-scores-menu').style.display = 'none';
+        }
+        // No clock in this game, so there is nothing to pause — restart and mute only.
+        if (window.Arcade) {
+            Arcade.controls({
+                onRestart: function () { startRound(); },
+                onMute:    function (m) { soundMuted = m; },
+                theme: true
+            });
         }
 
         function updateStats() {
