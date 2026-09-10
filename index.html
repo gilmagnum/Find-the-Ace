@@ -210,6 +210,7 @@ html[data-arcade-theme="light"] #menu p{color:#4d5b7d}
         }
 
         function startRound() {
+            if (window.Leaderboard) Leaderboard.cancelPending();   // a new round drops the old run's panel
             clearInterval(confettiInterval);
             isGameOver = false;
             acesFound = 0;
@@ -340,7 +341,7 @@ html[data-arcade-theme="light"] #menu p{color:#4d5b7d}
             if (won) {
                 const flipped = 52 - cardsLeft;   // fewer cards = better
                 if (window.Leaderboard) {
-                    setTimeout(function () { Leaderboard.gameOver(flipped, { aces: acesFound }); }, 1400);
+                    Leaderboard.gameOverIn(1400, flipped, { aces: acesFound });
                 }
                 playSound('megaTada');
                 document.getElementById('zoom-container').style.display = 'none';
