@@ -34,8 +34,8 @@
         button { padding: 10px 15px; font-size: 0.9em; cursor: pointer; background-color: #d32f2f; color: white; border: none; border-radius: 8px; margin: 3px; font-weight: bold; }
     </style>
 <!-- arcaide-leaderboard -->
-<script src="https://gilmagnum.github.io/games/config.js"></script>
-<script src="https://gilmagnum.github.io/games/leaderboard.js"></script>
+<script src="https://gilmagnum.github.io/games/config.js?v=4"></script>
+<script src="https://gilmagnum.github.io/games/leaderboard.js?v=4"></script>
 <style>
   .lb-btn{margin-top:10px;padding:10px 22px;border:1px solid rgba(255,255,255,.25);border-radius:12px;
     background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
@@ -210,7 +210,7 @@ html[data-arcade-theme="light"] #menu p{color:#4d5b7d}
         }
 
         function startRound() {
-            if (window.Leaderboard) Leaderboard.cancelPending();   // a new round drops the old run's panel
+            if (window.Leaderboard && Leaderboard.cancelPending) Leaderboard.cancelPending();   // a new round drops the old run's panel
             clearInterval(confettiInterval);
             isGameOver = false;
             acesFound = 0;
@@ -341,7 +341,7 @@ html[data-arcade-theme="light"] #menu p{color:#4d5b7d}
             if (won) {
                 const flipped = 52 - cardsLeft;   // fewer cards = better
                 if (window.Leaderboard) {
-                    Leaderboard.gameOverIn(1400, flipped, { aces: acesFound });
+                    (Leaderboard.gameOverIn ? Leaderboard.gameOverIn(1400, flipped, { aces: acesFound }) : setTimeout(function(){ Leaderboard.gameOver(flipped, { aces: acesFound }); }, 1400));
                 }
                 playSound('megaTada');
                 document.getElementById('zoom-container').style.display = 'none';
